@@ -49,6 +49,90 @@ class GooglePlacesGasStationBot:
         )
         await update.message.reply_text(welcome_text, parse_mode='Markdown')
     
+    async def help_command(self, update, context):
+        """Send help message."""
+        help_text = (
+            "🆘 **GAS STATION FINDER - HELP** 🆘\n\n"
+            "📋 **AVAILABLE COMMANDS:**\n"
+            "/start - Welcome message & instructions\n"
+            "/help - Show this help message\n"
+            "/about - About this bot\n"
+            "/example - See usage examples\n"
+            "/commands - List all commands\n\n"
+            "📍 **HOW TO USE:**\n"
+            "• Send any US ZIP code(s)\n"
+            "• Get 5 gas stations per ZIP\n"
+            "• Download as horizontal CSV\n\n"
+            "💡 **EXAMPLES:**\n"
+            "• `90210` - Single ZIP\n"
+            "• `90210 10001 77001` - Multiple ZIPs\n"
+            "• Maximum 10 ZIP codes per search\n\n"
+            "🎯 **Ready to search? Send a ZIP code!**"
+        )
+        await update.message.reply_text(help_text, parse_mode='Markdown')
+    
+    async def about_command(self, update, context):
+        """Send about message."""
+        about_text = (
+            "ℹ️ **ABOUT GAS STATION FINDER** ℹ️\n\n"
+            "🤖 **Bot Info:**\n"
+            "• Real gas station data from Google Places API\n"
+            "• Horizontal CSV format for easy data use\n"
+            "• Support for multiple ZIP codes\n"
+            "• 30-minute caching for efficiency\n\n"
+            "🔧 **Technical:**\n"
+            "• Built with Python & Docker\n"
+            "• Hosted on Render.com\n"
+            "• Uses Google Cloud Services\n\n"
+            "📊 **Features:**\n"
+            "• Up to 10 ZIP codes per search\n"
+            "• 5 gas stations per ZIP code\n"
+            "• Complete address information\n"
+            "• Fast & reliable results\n\n"
+            "💡 Send /help for usage instructions!"
+        )
+        await update.message.reply_text(about_text, parse_mode='Markdown')
+    
+    async def example_command(self, update, context):
+        """Send example usage."""
+        example_text = (
+            "📝 **USAGE EXAMPLES** 📝\n\n"
+            "🎯 **Single ZIP Code:**\n"
+            "`90210`\n"
+            "→ 5 gas stations in Beverly Hills, CA\n\n"
+            "🎯 **Multiple ZIP Codes:**\n"
+            "`90210 10001 77001`\n"
+            "→ Up to 15 stations from 3 different areas\n\n"
+            "🎯 **Maximum Capacity:**\n"
+            "`90210 10001 77001 60601 33101`\n"
+            "→ Up to 25 stations from 5 ZIP codes\n\n"
+            "📊 **CSV Output Format:**\n"
+            "Seller Name1, Seller Address1, Seller City1, Seller State1, Seller Zip1, Seller Name2, Seller Address2...\n\n"
+            "💡 **Tips:**\n"
+            "• Separate ZIP codes with spaces\n"
+            "• Maximum 10 ZIP codes per request\n"
+            "• Results cached for 30 minutes\n\n"
+            "🚀 **Try it now! Send a ZIP code!**"
+        )
+        await update.message.reply_text(example_text, parse_mode='Markdown')
+    
+    async def commands_command(self, update, context):
+        """List all available commands."""
+        commands_text = (
+            "⚡ **ALL AVAILABLE COMMANDS** ⚡\n\n"
+            "/start - 🏁 Welcome & getting started\n"
+            "/help - 🆘 Complete help guide\n"
+            "/about - ℹ️ About this bot\n"
+            "/example - 📝 Usage examples\n"
+            "/commands - ⚡ This command list\n\n"
+            "🎯 **Main Function:**\n"
+            "Just send ZIP codes directly!\n"
+            "No commands needed for searching.\n\n"
+            "💡 **Quick Start:**\n"
+            "Send any 5-digit US ZIP code to begin!"
+        )
+        await update.message.reply_text(commands_text, parse_mode='Markdown')
+    
     def extract_zip_codes(self, text):
         """Extract valid US ZIP codes from text."""
         # Find all 5-digit numbers in the text

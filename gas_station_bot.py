@@ -508,6 +508,10 @@ def main():
         
         # Add handlers
         app.add_handler(CommandHandler("start", bot.start))
+        app.add_handler(CommandHandler("help", bot.help_command))
+        app.add_handler(CommandHandler("about", bot.about_command))
+        app.add_handler(CommandHandler("example", bot.example_command))
+        app.add_handler(CommandHandler("commands", bot.commands_command))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_message))
         
         # Start the bot

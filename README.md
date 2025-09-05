@@ -20,9 +20,27 @@ A powerful Telegram bot that finds real gas stations using Google Places API and
    - Up to 10 ZIP codes per request
 3. Get instant CSV download + beautiful preview
 
-## 🚀 Quick Deploy to Render
+## 🚀 Quick Deploy with Docker (Recommended)
+
+🐳 **Docker is the BEST way to deploy - no version conflicts!**
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com)
+
+### Step 1: Push to GitHub
+```bash
+git add .
+git commit -m "Add Docker support"
+git push origin master
+```
+
+### Step 2: Deploy on Render
+1. New → Web Service
+2. Select your repository
+3. Environment: **Docker**
+4. Add your API keys as environment variables
+5. Deploy! 🚀
+
+**→ See [Docker Deployment Guide](Docker%20Deployment%20Guide.md) for details**
 
 ## 📋 Prerequisites
 

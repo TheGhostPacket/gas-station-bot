@@ -478,7 +478,7 @@ class GooglePlacesGasStationBot:
                 continue
             
             # Search for gas stations
-            stations = self.search_gas_stations(lat, lng, zip_code)
+            stations = self.search_gas_stations(lat, lng, zip_code, state)
             all_stations_data[zip_code] = stations
             
             # Cache the result

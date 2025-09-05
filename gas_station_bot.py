@@ -5,7 +5,8 @@ import io
 import re
 import time
 import os
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+import asyncio
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from telegram import ChatAction
 
 # Configure logging
@@ -20,7 +21,7 @@ class GooglePlacesGasStationBot:
     def __init__(self):
         self.cache = {}  # Cache results to save API costs
     
-    def start(self, update, context):
+    async def start(self, update, context):
         """Send welcome message when /start command is issued."""
         welcome_text = (
             "⛽🔥 **GAS STATION FINDER** 🔥⛽\n\n"
@@ -46,7 +47,7 @@ class GooglePlacesGasStationBot:
             "Example: `90210 10001 77001`\n\n"
             "🎯 **Ready to find gas stations? Send a ZIP code!**"
         )
-        update.message.reply_text(welcome_text, parse_mode='Markdown')
+        await update.message.reply_text(welcome_text, parse_mode='Markdown')
     
     def extract_zip_codes(self, text):
         """Extract valid US ZIP codes from text."""
@@ -324,7 +325,7 @@ class GooglePlacesGasStationBot:
             logger.error(f"Preview creation error: {e}")
             return "Preview generation error"
     
-    def handle_message(self, update, context):
+    async def handle_message(self, update, context):
         """Handle user ZIP code input."""
         user_input = update.message.text.strip()
         
@@ -332,7 +333,7 @@ class GooglePlacesGasStationBot:
         zip_codes = self.extract_zip_codes(user_input)
         
         if not zip_codes:
-            update.message.reply_text(
+            await update.message.reply_text(
                 "❌ **NO VALID ZIP CODES FOUND!** \n\n"
                 "🎯 **Examples:**\n"
                 "• `90210`\n"
@@ -347,15 +348,15 @@ class GooglePlacesGasStationBot:
             return
         
         # Show processing message
-        context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
         
         if len(zip_codes) == 1:
-            status_message = update.message.reply_text(
+            status_message = await update.message.reply_text(
                 f"🔍 **SEARCHING ZIP {zip_codes[0]}...**\n\n"
                 f"⚡ Finding gas stations..."
             )
         else:
-            status_message = update.message.reply_text(
+            status_message = await update.message.reply_text(
                 f"🔍 **SEARCHING {len(zip_codes)} ZIP CODES...**\n\n"
                 f"📍 ZIPs: {', '.join(zip_codes)}\n"
                 f"⚡ Finding gas stations..."
@@ -368,7 +369,7 @@ class GooglePlacesGasStationBot:
             processed_count += 1
             
             # Update status
-            context.bot.edit_message_text(
+            await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=status_message.message_id,
                 text=f"🔍 **PROCESSING... ({processed_count}/{len(zip_codes)})**\n\n"
@@ -409,7 +410,7 @@ class GooglePlacesGasStationBot:
         total_stations = sum(len(stations) for stations in all_stations_data.values())
         
         if total_stations == 0:
-            context.bot.edit_message_text(
+            await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=status_message.message_id,
                 text=f"❌ **NO GAS STATIONS FOUND!**\n\n"
@@ -419,7 +420,7 @@ class GooglePlacesGasStationBot:
             return
         
         # Update status to generating CSV
-        context.bot.edit_message_text(
+        await context.bot.edit_message_text(
             chat_id=update.effective_chat.id,
             message_id=status_message.message_id,
             text=f"📊 **GENERATING CSV FILE...**\n\n"
@@ -431,7 +432,7 @@ class GooglePlacesGasStationBot:
         csv_content = self.create_horizontal_csv_content(all_stations_data)
         
         if not csv_content:
-            context.bot.edit_message_text(
+            await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=status_message.message_id,
                 text="❌ **CSV GENERATION FAILED!**\n\nPlease try again."
@@ -442,7 +443,7 @@ class GooglePlacesGasStationBot:
         csv_file = self.create_csv_file(csv_content, zip_codes)
         
         if not csv_file:
-            context.bot.edit_message_text(
+            await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=status_message.message_id,
                 text="❌ **FILE CREATION FAILED!**\n\nPlease try again."
@@ -455,7 +456,7 @@ class GooglePlacesGasStationBot:
             if len(zip_codes) > 5:
                 zip_list += f" (+{len(zip_codes)-5} more)"
             
-            context.bot.send_document(
+            await context.bot.send_document(
                 chat_id=update.effective_chat.id,
                 document=csv_file,
                 filename=csv_file.name,
@@ -469,18 +470,18 @@ class GooglePlacesGasStationBot:
             )
             
             # Delete status message
-            context.bot.delete_message(
+            await context.bot.delete_message(
                 chat_id=update.effective_chat.id,
                 message_id=status_message.message_id
             )
             
             # Send nice preview
             preview_text = self.create_nice_preview(all_stations_data, zip_codes)
-            update.message.reply_text(preview_text, parse_mode='Markdown')
+            await update.message.reply_text(preview_text, parse_mode='Markdown')
             
         except Exception as e:
             logger.error(f"Error sending file: {e}")
-            context.bot.edit_message_text(
+            await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=status_message.message_id,
                 text="❌ **FILE SENDING FAILED!**\n\nPlease try again."
@@ -502,19 +503,17 @@ def main():
         # Create bot instance
         bot = GooglePlacesGasStationBot()
         
-        # Create updater and dispatcher
-        updater = Updater(TELEGRAM_BOT_TOKEN, use_context=True)
-        dispatcher = updater.dispatcher
+        # Create application
+        app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
         
         # Add handlers
-        dispatcher.add_handler(CommandHandler("start", bot.start))
-        dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, bot.handle_message))
+        app.add_handler(CommandHandler("start", bot.start))
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_message))
         
         # Start the bot
-        updater.start_polling()
         print("✅ Bot started successfully!")
         print("💡 Send /start to your bot to begin")
-        updater.idle()
+        app.run_polling()
         
     except Exception as e:
         print(f"❌ Error starting bot: {e}")

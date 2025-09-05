@@ -7,7 +7,7 @@ import time
 import os
 import asyncio
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
-from telegram import ChatAction
+from telegram.constants import ChatAction
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)

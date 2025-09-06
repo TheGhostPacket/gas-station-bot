@@ -297,6 +297,23 @@ class SimpleGasStationBot:
         response_text = self.create_response(stations, area_info, search_type)
         await update.message.reply_text(response_text, parse_mode='Markdown')
 
+async def health_check(request):
+    """Health check endpoint for Render."""
+    return web.Response(text="Gas Station Bot is running!")
+
+async def start_web_server():
+    """Start a simple web server for Render port binding."""
+    app = web.Application()
+    app.router.add_get('/', health_check)
+    app.router.add_get('/health', health_check)
+    
+    port = int(os.getenv('PORT', 8080))
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+    print(f"🌐 Web server started on port {port}")
+
 def main():
     """Main function to run the bot."""
     print("🚀 Starting Simple Gas Station Finder Bot...")
@@ -316,9 +333,17 @@ def main():
         app.add_handler(CommandHandler("examples", bot.examples_command))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_message))
         
-        # Start the bot
-        print("✅ Bot started successfully!")
-        app.run_polling()
+        # Start both web server and bot
+        async def run_bot():
+            # Start web server for Render
+            await start_web_server()
+            
+            # Start the bot
+            print("✅ Bot started successfully!")
+            await app.run_polling()
+        
+        # Run the bot
+        asyncio.run(run_bot())
         
     except Exception as e:
         print(f"❌ Error starting bot: {e}")

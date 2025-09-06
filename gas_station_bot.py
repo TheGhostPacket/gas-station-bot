@@ -3,8 +3,10 @@ import requests
 import re
 import time
 import os
+import threading
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from telegram.constants import ChatAction
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -13,6 +15,21 @@ logger = logging.getLogger(__name__)
 # Configuration - use environment variables for production
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', 'YOUR_TELEGRAM_BOT_TOKEN')
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', 'YOUR_GOOGLE_API_KEY')
+
+class HealthHandler(SimpleHTTPRequestHandler):
+    """Simple HTTP handler for health checks."""
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'Gas Station Bot is running!')
+
+def start_health_server():
+    """Start a simple HTTP server for Render health checks."""
+    port = int(os.getenv('PORT', 8080))
+    server = HTTPServer(('0.0.0.0', port), HealthHandler)
+    print(f"🌐 Health server started on port {port}")
+    server.serve_forever()
 
 class SimpleGasStationBot:
     def __init__(self):
@@ -251,14 +268,17 @@ class SimpleGasStationBot:
                 stations = self.cache[cache_key]['stations']
                 area_info = self.cache[cache_key]['area_info']
                 
-                await context.bot.delete_message(
-                    chat_id=update.effective_chat.id,
-                    message_id=status_msg.message_id
-                )
+                try:
+                    await context.bot.delete_message(
+                        chat_id=update.effective_chat.id,
+                        message_id=status_msg.message_id
+                    )
+                except:
+                    pass  # Ignore if message already deleted
                 
                 response_text = self.create_response(stations, area_info, search_type)
                 await update.message.reply_text(response_text, parse_mode='Markdown')
-                return
+                return  # IMPORTANT: Exit here to prevent duplicate processing
         
         # Geocode the search
         lat, lng, city, state, formatted_address = self.geocode_location(processed_input, search_type)
@@ -297,23 +317,6 @@ class SimpleGasStationBot:
         response_text = self.create_response(stations, area_info, search_type)
         await update.message.reply_text(response_text, parse_mode='Markdown')
 
-async def health_check(request):
-    """Health check endpoint for Render."""
-    return web.Response(text="Gas Station Bot is running!")
-
-async def start_web_server():
-    """Start a simple web server for Render port binding."""
-    app = web.Application()
-    app.router.add_get('/', health_check)
-    app.router.add_get('/health', health_check)
-    
-    port = int(os.getenv('PORT', 8080))
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', port)
-    await site.start()
-    print(f"🌐 Web server started on port {port}")
-
 def main():
     """Main function to run the bot."""
     print("🚀 Starting Simple Gas Station Finder Bot...")
@@ -321,6 +324,10 @@ def main():
     print("📱 Bot starting...")
     
     try:
+        # Start health server in background thread for Render
+        health_thread = threading.Thread(target=start_health_server, daemon=True)
+        health_thread.start()
+        
         # Create bot instance
         bot = SimpleGasStationBot()
         
@@ -333,17 +340,9 @@ def main():
         app.add_handler(CommandHandler("examples", bot.examples_command))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_message))
         
-        # Start both web server and bot
-        async def run_bot():
-            # Start web server for Render
-            await start_web_server()
-            
-            # Start the bot
-            print("✅ Bot started successfully!")
-            await app.run_polling()
-        
-        # Run the bot
-        asyncio.run(run_bot())
+        # Start the bot
+        print("✅ Bot started successfully!")
+        app.run_polling()
         
     except Exception as e:
         print(f"❌ Error starting bot: {e}")

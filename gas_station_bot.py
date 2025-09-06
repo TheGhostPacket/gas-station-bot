@@ -284,13 +284,16 @@ class SimpleGasStationBot:
             'timestamp': time.time()
         }
         
-        # Delete status message
-        await context.bot.delete_message(
-            chat_id=update.effective_chat.id,
-            message_id=status_msg.message_id
-        )
+        # Delete status message and send results
+        try:
+            await context.bot.delete_message(
+                chat_id=update.effective_chat.id,
+                message_id=status_msg.message_id
+            )
+        except:
+            pass  # Ignore if message already deleted
         
-        # Send results
+        # Send results only once
         response_text = self.create_response(stations, area_info, search_type)
         await update.message.reply_text(response_text, parse_mode='Markdown')
 

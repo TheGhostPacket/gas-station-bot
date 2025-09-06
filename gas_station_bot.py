@@ -178,7 +178,7 @@ class GooglePlacesGasStationBot:
             logger.error(f"Geocoding error: {e}")
             return None, None, None, None, None
     
-    def search_gas_stations(self, lat, lng, zip_code):
+    def search_gas_stations(self, lat, lng, zip_code, area_state="Unknown"):
         """Search for gas stations near the given coordinates."""
         try:
             url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"

@@ -1,11 +1,8 @@
 import logging
 import requests
-import csv
-import io
 import re
 import time
 import os
-import asyncio
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from telegram.constants import ChatAction
 
@@ -17,57 +14,57 @@ logger = logging.getLogger(__name__)
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', 'YOUR_TELEGRAM_BOT_TOKEN')
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', 'YOUR_GOOGLE_API_KEY')
 
-class GooglePlacesGasStationBot:
+class BeautifulGasStationBot:
     def __init__(self):
         self.cache = {}  # Cache results to save API costs
     
     async def start(self, update, context):
         """Send welcome message when /start command is issued."""
         welcome_text = (
-            "⛽🔥 **GAS STATION FINDER** 🔥⛽\n\n"
-            "🚗💨 Find real gas stations instantly!\n\n"
+            "⛽ **BEAUTIFUL GAS STATION FINDER** ⛽\n\n"
+            "🎯 **Choose your search method:**\n\n"
             "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
-            "┃  📍 **HOW TO USE**                      ┃\n"
-            "┃  🎯 Send any US ZIP code               ┃\n"
-            "┃  📊 Get 5 gas stations instantly       ┃\n"
-            "┃  💾 Download as CSV file               ┃\n"
+            "┃  🗺️  **SEARCH OPTIONS**              ┃\n"
+            "┃                                     ┃\n"
+            "┃  📍 **ZIP Code**                    ┃\n"
+            "┃  Example: `90210`                   ┃\n"
+            "┃                                     ┃\n"
+            "┃  🏛️  **State Code**                 ┃\n"
+            "┃  Example: `CA` or `TX`              ┃\n"
+            "┃                                     ┃\n"
+            "┃  🏙️  **City + State**               ┃\n"
+            "┃  Example: `Miami FL` or `Boston MA` ┃\n"
             "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n"
-            "🌟 **EXAMPLES:**\n"
-            "• `90210` - Beverly Hills, CA\n"
-            "• `10001` - New York, NY  \n"
-            "• `77001` - Houston, TX\n"
-            "• `60601` - Chicago, IL\n\n"
-            "✨ **FEATURES:**\n"
-            "🔥 Real-time Google Places data\n"
-            "🎯 Smart address parsing\n"
-            "💾 Instant CSV download\n"
-            "⚡ Lightning fast results\n"
-            "🚀 Up to 10 ZIP codes supported\n\n"
-            "💡 **TIP:** Send multiple ZIP codes separated by spaces!\n"
-            "Example: `90210 10001 77001`\n\n"
-            "🎯 **Ready to find gas stations? Send a ZIP code!**"
+            "✨ **What you'll get:**\n"
+            "🎯 **3 top gas stations** per search\n"
+            "📍 **Complete addresses** & details\n"
+            "⭐ **Ratings & reviews** included\n"
+            "⚡ **Instant results** - no waiting!\n\n"
+            "💡 **Ready to find gas stations?**\n"
+            "Just send your search term!"
         )
         await update.message.reply_text(welcome_text, parse_mode='Markdown')
     
     async def help_command(self, update, context):
         """Send help message."""
         help_text = (
-            "🆘 **GAS STATION FINDER - HELP** 🆘\n\n"
-            "📋 **AVAILABLE COMMANDS:**\n"
-            "/start - Welcome message & instructions\n"
-            "/help - Show this help message\n"
+            "🆘 **HELP & COMMANDS** 🆘\n\n"
+            "📋 **Available Commands:**\n"
+            "/start - Welcome & search options\n"
+            "/help - This help message\n"
             "/about - About this bot\n"
-            "/example - See usage examples\n"
-            "/commands - List all commands\n\n"
-            "📍 **HOW TO USE:**\n"
-            "• Send any US ZIP code(s)\n"
-            "• Get 5 gas stations per ZIP\n"
-            "• Download as horizontal CSV\n\n"
-            "💡 **EXAMPLES:**\n"
-            "• `90210` - Single ZIP\n"
-            "• `90210 10001 77001` - Multiple ZIPs\n"
-            "• Maximum 10 ZIP codes per search\n\n"
-            "🎯 **Ready to search? Send a ZIP code!**"
+            "/examples - Search examples\n\n"
+            "🔍 **Search Methods:**\n\n"
+            "**1. ZIP Code Search:**\n"
+            "• Send: `90210`\n"
+            "• Gets: 3 stations in Beverly Hills, CA\n\n"
+            "**2. State Search:**\n"
+            "• Send: `CA` or `TX`\n"
+            "• Gets: 3 popular stations in that state\n\n"
+            "**3. City + State Search:**\n"
+            "• Send: `Miami FL`\n"
+            "• Gets: 3 stations in Miami, Florida\n\n"
+            "🎯 **All searches return 3 top-rated stations!**"
         )
         await update.message.reply_text(help_text, parse_mode='Markdown')
     
@@ -75,86 +72,86 @@ class GooglePlacesGasStationBot:
         """Send about message."""
         about_text = (
             "ℹ️ **ABOUT GAS STATION FINDER** ℹ️\n\n"
-            "🤖 **Bot Info:**\n"
-            "• Real gas station data from Google Places API\n"
-            "• Horizontal CSV format for easy data use\n"
-            "• Support for multiple ZIP codes\n"
-            "• 30-minute caching for efficiency\n\n"
-            "🔧 **Technical:**\n"
-            "• Built with Python & Docker\n"
-            "• Hosted on Render.com\n"
-            "• Uses Google Cloud Services\n\n"
-            "📊 **Features:**\n"
-            "• Up to 10 ZIP codes per search\n"
-            "• 5 gas stations per ZIP code\n"
-            "• Complete address information\n"
-            "• Fast & reliable results\n\n"
-            "💡 Send /help for usage instructions!"
+            "🤖 **What I do:**\n"
+            "Find the **3 best gas stations** in your area using real-time data from Google Places API\n\n"
+            "🎨 **Features:**\n"
+            "🎯 Beautiful, clean interface\n"
+            "📍 Multiple search options\n"
+            "⭐ Real ratings & reviews\n"
+            "⚡ Lightning-fast results\n"
+            "🔄 Smart caching system\n\n"
+            "🔧 **Technology:**\n"
+            "• Google Places API\n"
+            "• Python & Docker\n"
+            "• Hosted on Render\n\n"
+            "📊 **Data Quality:**\n"
+            "All information is real-time and verified from Google's database of businesses."
         )
         await update.message.reply_text(about_text, parse_mode='Markdown')
     
-    async def example_command(self, update, context):
-        """Send example usage."""
-        example_text = (
-            "📝 **USAGE EXAMPLES** 📝\n\n"
-            "🎯 **Single ZIP Code:**\n"
-            "`90210`\n"
-            "→ 5 gas stations in Beverly Hills, CA\n\n"
-            "🎯 **Multiple ZIP Codes:**\n"
-            "`90210 10001 77001`\n"
-            "→ Up to 15 stations from 3 different areas\n\n"
-            "🎯 **Maximum Capacity:**\n"
-            "`90210 10001 77001 60601 33101`\n"
-            "→ Up to 25 stations from 5 ZIP codes\n\n"
-            "📊 **CSV Output Format:**\n"
-            "Seller Name1, Seller Address1, Seller City1, Seller State1, Seller Zip1, Seller Name2, Seller Address2...\n\n"
+    async def examples_command(self, update, context):
+        """Send example searches."""
+        examples_text = (
+            "📝 **SEARCH EXAMPLES** 📝\n\n"
+            "🎯 **ZIP Code Examples:**\n"
+            "`90210` - Beverly Hills, CA\n"
+            "`10001` - New York, NY\n"
+            "`77001` - Houston, TX\n"
+            "`60601` - Chicago, IL\n\n"
+            "🏛️ **State Code Examples:**\n"
+            "`CA` - California stations\n"
+            "`TX` - Texas stations\n"
+            "`FL` - Florida stations\n"
+            "`NY` - New York stations\n\n"
+            "🏙️ **City + State Examples:**\n"
+            "`Miami FL` - Miami, Florida\n"
+            "`Boston MA` - Boston, Massachusetts\n"
+            "`Seattle WA` - Seattle, Washington\n"
+            "`Denver CO` - Denver, Colorado\n\n"
             "💡 **Tips:**\n"
-            "• Separate ZIP codes with spaces\n"
-            "• Maximum 10 ZIP codes per request\n"
-            "• Results cached for 30 minutes\n\n"
-            "🚀 **Try it now! Send a ZIP code!**"
+            "• State codes are 2 letters (CA, TX, FL)\n"
+            "• For cities, use: `CityName StateName`\n"
+            "• All searches return 3 top stations\n\n"
+            "🚀 **Try any example above!**"
         )
-        await update.message.reply_text(example_text, parse_mode='Markdown')
+        await update.message.reply_text(examples_text, parse_mode='Markdown')
     
-    async def commands_command(self, update, context):
-        """List all available commands."""
-        commands_text = (
-            "⚡ **ALL AVAILABLE COMMANDS** ⚡\n\n"
-            "/start - 🏁 Welcome & getting started\n"
-            "/help - 🆘 Complete help guide\n"
-            "/about - ℹ️ About this bot\n"
-            "/example - 📝 Usage examples\n"
-            "/commands - ⚡ This command list\n\n"
-            "🎯 **Main Function:**\n"
-            "Just send ZIP codes directly!\n"
-            "No commands needed for searching.\n\n"
-            "💡 **Quick Start:**\n"
-            "Send any 5-digit US ZIP code to begin!"
-        )
-        await update.message.reply_text(commands_text, parse_mode='Markdown')
-    
-    def extract_zip_codes(self, text):
-        """Extract valid US ZIP codes from text."""
-        # Find all 5-digit numbers in the text
-        zip_codes = re.findall(r'\b\d{5}\b', text.strip())
+    def detect_search_type(self, user_input):
+        """Detect what type of search the user wants."""
+        user_input = user_input.strip().upper()
         
-        # Remove duplicates while preserving order
-        unique_zips = []
-        for zip_code in zip_codes:
-            if zip_code not in unique_zips:
-                unique_zips.append(zip_code)
+        # ZIP Code: 5 digits
+        if re.match(r'^\d{5}$', user_input):
+            return 'zip', user_input
         
-        # Limit to 10 ZIP codes maximum
-        return unique_zips[:10]
+        # State Code: 2 letters
+        elif re.match(r'^[A-Z]{2}$', user_input):
+            return 'state', user_input
+        
+        # City + State: "CITY ST" format
+        elif re.match(r'^[A-Z\s]+\s[A-Z]{2}$', user_input):
+            parts = user_input.rsplit(' ', 1)
+            city = parts[0].title()
+            state = parts[1]
+            return 'city_state', f"{city}, {state}"
+        
+        return 'unknown', user_input
     
-    def geocode_zip_code(self, zip_code):
-        """Convert ZIP code to coordinates using Google Geocoding API."""
+    def geocode_location(self, search_query, search_type):
+        """Convert search query to coordinates."""
         try:
             url = "https://maps.googleapis.com/maps/api/geocode/json"
+            
+            if search_type == 'state':
+                # For state search, get the state capital or major city
+                search_query = f"{search_query}, USA"
+            elif search_type == 'city_state':
+                search_query = f"{search_query}, USA"
+            
             params = {
-                'address': zip_code,
+                'address': search_query,
                 'key': GOOGLE_API_KEY,
-                'components': 'country:US'  # Limit to US
+                'components': 'country:US'
             }
             
             response = requests.get(url, params=params)
@@ -165,10 +162,17 @@ class GooglePlacesGasStationBot:
                 location = result['geometry']['location']
                 formatted_address = result['formatted_address']
                 
-                # Extract city and state from formatted address
-                address_parts = formatted_address.split(', ')
-                city = address_parts[1] if len(address_parts) > 1 else "Unknown"
-                state = address_parts[2].split()[0] if len(address_parts) > 2 else "Unknown"
+                # Extract location info
+                state = "Unknown"
+                city = "Unknown"
+                
+                if 'address_components' in result:
+                    for component in result['address_components']:
+                        types = component.get('types', [])
+                        if 'administrative_area_level_1' in types:
+                            state = component.get('short_name', 'Unknown')
+                        elif 'locality' in types:
+                            city = component.get('long_name', 'Unknown')
                 
                 return location['lat'], location['lng'], city, state, formatted_address
             
@@ -178,13 +182,17 @@ class GooglePlacesGasStationBot:
             logger.error(f"Geocoding error: {e}")
             return None, None, None, None, None
     
-    def search_gas_stations(self, lat, lng, zip_code, area_state="Unknown"):
-        """Search for gas stations near the given coordinates."""
+    def search_gas_stations(self, lat, lng, area_info):
+        """Search for top 3 gas stations near coordinates."""
         try:
             url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+            
+            # Adjust radius based on search type
+            radius = 15000  # 15km for broader search
+            
             params = {
                 'location': f"{lat},{lng}",
-                'radius': 8000,  # 8km radius
+                'radius': radius,
                 'type': 'gas_station',
                 'key': GOOGLE_API_KEY
             }
@@ -194,27 +202,30 @@ class GooglePlacesGasStationBot:
             
             stations = []
             if data['status'] == 'OK':
-                for place in data['results']:
-                    # Get detailed info for each place
+                # Sort by rating first, then by user_ratings_total
+                places = sorted(data['results'], 
+                              key=lambda x: (x.get('rating', 0), x.get('user_ratings_total', 0)), 
+                              reverse=True)
+                
+                for place in places[:3]:  # Top 3 stations
                     details = self.get_place_details(place['place_id'])
-                    
-                    # Extract address components
-                    address_info = self.parse_address(details.get('formatted_address', ''), zip_code)
                     
                     station = {
                         'name': place.get('name', 'Unknown Station'),
-                        'address': address_info['street_address'],
-                        'city': address_info['city'],
-                        'state': address_info['state'],
-                        'zip': address_info['zip'],
-                        'full_address': details.get('formatted_address', place.get('vicinity', ''))
+                        'address': details.get('formatted_address', place.get('vicinity', 'Address not available')),
+                        'rating': place.get('rating', 0),
+                        'user_ratings_total': place.get('user_ratings_total', 0),
+                        'price_level': place.get('price_level', None),
+                        'opening_hours': self.format_opening_hours(details.get('opening_hours', {})),
+                        'phone': details.get('formatted_phone_number', ''),
+                        'website': details.get('website', ''),
+                        'place_id': place['place_id']
                     }
                     stations.append(station)
                     
-                    # Small delay to be respectful to API
-                    time.sleep(0.1)
+                    time.sleep(0.1)  # Rate limiting
             
-            return stations[:5]  # Return max 5 stations per ZIP
+            return stations
             
         except Exception as e:
             logger.error(f"Gas station search error: {e}")
@@ -226,7 +237,7 @@ class GooglePlacesGasStationBot:
             url = "https://maps.googleapis.com/maps/api/place/details/json"
             params = {
                 'place_id': place_id,
-                'fields': 'formatted_address',
+                'fields': 'formatted_address,formatted_phone_number,website,opening_hours',
                 'key': GOOGLE_API_KEY
             }
             
@@ -242,191 +253,86 @@ class GooglePlacesGasStationBot:
             logger.error(f"Place details error: {e}")
             return {}
     
-    def parse_address(self, full_address, target_zip):
-        """Parse full address into components."""
+    def format_opening_hours(self, hours_data):
+        """Format opening hours."""
         try:
-            if not full_address:
-                return {
-                    'street_address': 'Address not available',
-                    'city': 'Unknown',
-                    'state': 'Unknown',
-                    'zip': target_zip
-                }
-            
-            # Split address by commas
-            parts = [part.strip() for part in full_address.split(',')]
-            
-            if len(parts) >= 3:
-                street_address = parts[0]
-                city = parts[1]
-                
-                # Last part usually contains state and ZIP
-                last_part = parts[-1].strip()
-                
-                # Extract state (2 letters) and ZIP (5 digits)
-                state_zip_match = re.search(r'([A-Z]{2})\s+(\d{5})', last_part)
-                if state_zip_match:
-                    state = state_zip_match.group(1)
-                    zip_code = state_zip_match.group(2)
-                else:
-                    # Fallback
-                    state_parts = last_part.split()
-                    state = state_parts[0] if state_parts else 'Unknown'
-                    zip_code = target_zip
-                
-                return {
-                    'street_address': street_address,
-                    'city': city,
-                    'state': state,
-                    'zip': zip_code
-                }
-            
-            # Fallback for malformed addresses
-            return {
-                'street_address': full_address.split(',')[0] if ',' in full_address else full_address,
-                'city': 'Unknown',
-                'state': 'Unknown',
-                'zip': target_zip
-            }
-            
-        except Exception as e:
-            logger.error(f"Address parsing error: {e}")
-            return {
-                'street_address': 'Address parsing error',
-                'city': 'Unknown',
-                'state': 'Unknown',
-                'zip': target_zip
-            }
+            if 'weekday_text' in hours_data:
+                return hours_data['weekday_text'][0]  # Today's hours
+            return "Hours not available"
+        except:
+            return "Hours not available"
     
-    def create_horizontal_csv_content(self, all_stations_data):
-        """Create horizontal CSV content with Seller Name1, Address1, etc. format."""
-        try:
-            output = io.StringIO()
-            writer = csv.writer(output)
+    def create_beautiful_response(self, stations, search_info, search_type):
+        """Create a beautiful response with the 3 gas stations."""
+        if not stations:
+            return (
+                "❌ **NO STATIONS FOUND** ❌\n\n"
+                f"🔍 **Searched:** {search_info}\n"
+                f"📍 **Search Type:** {search_type.title()}\n\n"
+                "💡 **Try a different search:**\n"
+                "• Different ZIP code\n"
+                "• Different city/state\n"
+                "• Broader area search"
+            )
+        
+        response = f"🎉 **TOP {len(stations)} GAS STATIONS** 🎉\n\n"
+        response += f"📍 **Location:** {search_info}\n"
+        response += f"🔍 **Search Type:** {search_type.replace('_', ' ').title()}\n\n"
+        response += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        
+        for i, station in enumerate(stations, 1):
+            # Station header with number and name
+            response += f"**{i}. 🏪 {station['name']}**\n"
             
-            # Create header row with horizontal format
-            header = []
-            max_stations = max(len(stations) for stations in all_stations_data.values()) if all_stations_data else 0
+            # Address
+            response += f"📍 {station['address']}\n"
             
-            for i in range(1, max_stations + 1):
-                header.extend([
-                    f'Seller Name{i}',
-                    f'Seller Address{i}',
-                    f'Seller City{i}',
-                    f'Seller State{i}',
-                    f'Seller Zip{i}'
-                ])
+            # Rating and reviews
+            if station['rating'] > 0:
+                stars = "⭐" * int(station['rating'])
+                response += f"{stars} **{station['rating']}/5** ({station['user_ratings_total']} reviews)\n"
             
-            writer.writerow(header)
+            # Hours
+            if station['opening_hours'] != "Hours not available":
+                response += f"🕒 {station['opening_hours']}\n"
             
-            # Create data row
-            data_row = []
-            station_index = 0
+            # Phone
+            if station['phone']:
+                response += f"📞 {station['phone']}\n"
             
-            # Flatten all stations from all ZIP codes
-            all_stations = []
-            for zip_code in sorted(all_stations_data.keys()):
-                all_stations.extend(all_stations_data[zip_code])
+            # Price indicator
+            if station['price_level'] is not None:
+                price_symbols = "$" * (station['price_level'] + 1)
+                response += f"💰 Price Level: {price_symbols}\n"
             
-            # Fill the horizontal row
-            for i in range(max_stations):
-                if i < len(all_stations):
-                    station = all_stations[i]
-                    data_row.extend([
-                        station['name'],
-                        station['address'],
-                        station['city'],
-                        station['state'],
-                        station['zip']
-                    ])
-                else:
-                    # Fill empty columns if we have fewer stations
-                    data_row.extend(['', '', '', '', ''])
+            response += "\n"
             
-            writer.writerow(data_row)
-            
-            csv_content = output.getvalue()
-            output.close()
-            
-            return csv_content
-            
-        except Exception as e:
-            logger.error(f"CSV creation error: {e}")
-            return None
-    
-    def create_csv_file(self, csv_content, zip_codes):
-        """Create a CSV file object for sending."""
-        try:
-            csv_bytes = io.BytesIO()
-            csv_bytes.write(csv_content.encode('utf-8'))
-            csv_bytes.seek(0)
-            
-            if len(zip_codes) == 1:
-                csv_bytes.name = f"gas_stations_{zip_codes[0]}.csv"
-            else:
-                csv_bytes.name = f"gas_stations_{'_'.join(zip_codes[:3])}.csv"
-            
-            return csv_bytes
-            
-        except Exception as e:
-            logger.error(f"Error creating CSV file: {e}")
-            return None
-    
-    def create_nice_preview(self, all_stations_data, zip_codes):
-        """Create a nice preview of the gas stations."""
-        try:
-            preview_text = "🎉 **GAS STATIONS FOUND!** 🎉\n\n"
-            
-            total_stations = sum(len(stations) for stations in all_stations_data.values())
-            
-            preview_text += f"📊 **SUMMARY:**\n"
-            preview_text += f"🎯 ZIP Codes: {len(zip_codes)}\n"
-            preview_text += f"⛽ Total Stations: {total_stations}\n"
-            preview_text += f"💾 CSV Format: Horizontal layout\n\n"
-            
-            preview_text += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            
-            station_counter = 1
-            for zip_code in sorted(all_stations_data.keys()):
-                stations = all_stations_data[zip_code]
-                if stations:
-                    preview_text += f"📍 **ZIP {zip_code}** - {stations[0]['city']}, {stations[0]['state']}\n"
-                    
-                    for station in stations:
-                        preview_text += f"  {station_counter}. 🏪 **{station['name']}**\n"
-                        preview_text += f"     📌 {station['address']}\n"
-                        preview_text += f"     🏙️ {station['city']}, {station['state']} {station['zip']}\n\n"
-                        station_counter += 1
-                    
-                    preview_text += "┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n\n"
-            
-            preview_text += "💾 **Download the CSV file above for horizontal format!**\n"
-            preview_text += "🔄 Send more ZIP codes to search again!"
-            
-            return preview_text
-            
-        except Exception as e:
-            logger.error(f"Preview creation error: {e}")
-            return "Preview generation error"
+            # Add separator between stations (but not after the last one)
+            if i < len(stations):
+                response += "┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n\n"
+        
+        response += "🔄 **Want more stations? Try a different search!**"
+        return response
     
     async def handle_message(self, update, context):
-        """Handle user ZIP code input."""
+        """Handle user search input."""
         user_input = update.message.text.strip()
         
-        # Extract ZIP codes from input
-        zip_codes = self.extract_zip_codes(user_input)
+        # Detect search type
+        search_type, processed_input = self.detect_search_type(user_input)
         
-        if not zip_codes:
+        if search_type == 'unknown':
             await update.message.reply_text(
-                "❌ **NO VALID ZIP CODES FOUND!** \n\n"
-                "🎯 **Examples:**\n"
-                "• `90210`\n"
-                "• `90210 10001 77001`\n"
-                "• `Multiple: 60601 33101 94102`\n\n"
-                "📝 **Tips:**\n"
-                "• Use 5-digit US ZIP codes\n"
-                "• Separate multiple ZIPs with spaces\n"
-                "• Maximum 10 ZIP codes per request",
+                "❓ **SEARCH FORMAT NOT RECOGNIZED** ❓\n\n"
+                "🎯 **Please use one of these formats:**\n\n"
+                "📍 **ZIP Code:** `90210`\n"
+                "🏛️ **State:** `CA` or `TX`\n"
+                "🏙️ **City + State:** `Miami FL`\n\n"
+                "💡 **Examples:**\n"
+                "• `90210` (Beverly Hills ZIP)\n"
+                "• `CA` (California state)\n"
+                "• `Boston MA` (Boston, Massachusetts)\n\n"
+                "Send /examples to see more options!",
                 parse_mode='Markdown'
             )
             return
@@ -434,158 +340,100 @@ class GooglePlacesGasStationBot:
         # Show processing message
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
         
-        if len(zip_codes) == 1:
-            status_message = await update.message.reply_text(
-                f"🔍 **SEARCHING ZIP {zip_codes[0]}...**\n\n"
-                f"⚡ Finding gas stations..."
-            )
-        else:
-            status_message = await update.message.reply_text(
-                f"🔍 **SEARCHING {len(zip_codes)} ZIP CODES...**\n\n"
-                f"📍 ZIPs: {', '.join(zip_codes)}\n"
-                f"⚡ Finding gas stations..."
-            )
-        
-        all_stations_data = {}
-        processed_count = 0
-        
-        for zip_code in zip_codes:
-            processed_count += 1
-            
-            # Update status
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=status_message.message_id,
-                text=f"🔍 **PROCESSING... ({processed_count}/{len(zip_codes)})**\n\n"
-                     f"📍 Current: ZIP {zip_code}\n"
-                     f"⚡ Generating gas station data..."
-            )
-            
-            # Check cache first
-            cache_key = zip_code
-            if cache_key in self.cache:
-                cached_time = self.cache[cache_key]['timestamp']
-                if time.time() - cached_time < 1800:  # Cache for 30 minutes
-                    all_stations_data[zip_code] = self.cache[cache_key]['stations']
-                    continue
-            
-            # Geocode ZIP code
-            lat, lng, city, state, formatted_address = self.geocode_zip_code(zip_code)
-            
-            if not lat or not lng:
-                logger.warning(f"Could not geocode ZIP {zip_code}")
-                all_stations_data[zip_code] = []
-                continue
-            
-            # Search for gas stations
-            stations = self.search_gas_stations(lat, lng, zip_code, state)
-            all_stations_data[zip_code] = stations
-            
-            # Cache the result
-            self.cache[cache_key] = {
-                'stations': stations,
-                'timestamp': time.time()
-            }
-            
-            # Small delay between requests
-            time.sleep(0.5)
-        
-        # Check if we found any stations
-        total_stations = sum(len(stations) for stations in all_stations_data.values())
-        
-        if total_stations == 0:
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=status_message.message_id,
-                text=f"❌ **NO GAS STATIONS FOUND!**\n\n"
-                     f"📍 Searched: {', '.join(zip_codes)}\n"
-                     f"💡 Try different ZIP codes"
-            )
-            return
-        
-        # Update status to generating CSV
-        await context.bot.edit_message_text(
-            chat_id=update.effective_chat.id,
-            message_id=status_message.message_id,
-            text=f"📊 **GENERATING CSV FILE...**\n\n"
-                 f"⛽ Found {total_stations} gas stations\n"
-                 f"💾 Creating horizontal CSV format..."
+        status_msg = await update.message.reply_text(
+            f"🔍 **SEARCHING FOR GAS STATIONS...**\n\n"
+            f"📍 **Search:** {processed_input}\n"
+            f"🎯 **Type:** {search_type.replace('_', ' ').title()}\n"
+            f"⚡ **Finding top 3 stations...**"
         )
         
-        # Create CSV content
-        csv_content = self.create_horizontal_csv_content(all_stations_data)
+        # Check cache
+        cache_key = f"{search_type}_{processed_input.lower()}"
+        if cache_key in self.cache:
+            cached_time = self.cache[cache_key]['timestamp']
+            if time.time() - cached_time < 1800:  # 30 minutes
+                stations = self.cache[cache_key]['stations']
+                area_info = self.cache[cache_key]['area_info']
+                
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=status_msg.message_id,
+                    text=f"📋 **USING CACHED RESULTS**\n\n"
+                         f"⚡ **Found {len(stations)} stations instantly!**"
+                )
+                
+                response_text = self.create_beautiful_response(stations, area_info, search_type)
+                await update.message.reply_text(response_text, parse_mode='Markdown')
+                return
         
-        if not csv_content:
+        # Geocode the search
+        await context.bot.edit_message_text(
+            chat_id=update.effective_chat.id,
+            message_id=status_msg.message_id,
+            text=f"🗺️ **LOCATING AREA...**\n\n"
+                 f"📍 **Search:** {processed_input}\n"
+                 f"🎯 **Getting coordinates...**"
+        )
+        
+        lat, lng, city, state, formatted_address = self.geocode_location(processed_input, search_type)
+        
+        if not lat or not lng:
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
-                message_id=status_message.message_id,
-                text="❌ **CSV GENERATION FAILED!**\n\nPlease try again."
+                message_id=status_msg.message_id,
+                text=f"❌ **LOCATION NOT FOUND**\n\n"
+                     f"🔍 **Searched for:** {processed_input}\n"
+                     f"💡 **Please try:**\n"
+                     f"• Different spelling\n"
+                     f"• Valid ZIP code\n"
+                     f"• Correct state abbreviation"
             )
             return
         
-        # Create CSV file
-        csv_file = self.create_csv_file(csv_content, zip_codes)
+        # Search for gas stations
+        area_info = f"{city}, {state}" if city != "Unknown" else formatted_address
         
-        if not csv_file:
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=status_message.message_id,
-                text="❌ **FILE CREATION FAILED!**\n\nPlease try again."
-            )
-            return
+        await context.bot.edit_message_text(
+            chat_id=update.effective_chat.id,
+            message_id=status_msg.message_id,
+            text=f"⛽ **FINDING GAS STATIONS...**\n\n"
+                 f"📍 **Area:** {area_info}\n"
+                 f"🎯 **Getting top 3 stations...**"
+        )
         
-        # Send CSV file
-        try:
-            zip_list = ', '.join(zip_codes[:5])
-            if len(zip_codes) > 5:
-                zip_list += f" (+{len(zip_codes)-5} more)"
-            
-            await context.bot.send_document(
-                chat_id=update.effective_chat.id,
-                document=csv_file,
-                filename=csv_file.name,
-                caption=f"⛽🔥 **GAS STATIONS CSV** 🔥⛽\n\n"
-                       f"📍 **ZIP Codes:** {zip_list}\n"
-                       f"📊 **Total Stations:** {total_stations}\n"
-                       f"💾 **Format:** Horizontal CSV\n"
-                       f"🎯 **Layout:** Seller Name1, Address1, City1, State1, Zip1, etc.\n\n"
-                       f"🚀 **Ready for your next search!**",
-                parse_mode='Markdown'
-            )
-            
-            # Delete status message
-            await context.bot.delete_message(
-                chat_id=update.effective_chat.id,
-                message_id=status_message.message_id
-            )
-            
-            # Send nice preview
-            preview_text = self.create_nice_preview(all_stations_data, zip_codes)
-            await update.message.reply_text(preview_text, parse_mode='Markdown')
-            
-        except Exception as e:
-            logger.error(f"Error sending file: {e}")
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=status_message.message_id,
-                text="❌ **FILE SENDING FAILED!**\n\nPlease try again."
-            )
+        stations = self.search_gas_stations(lat, lng, area_info)
+        
+        # Cache results
+        self.cache[cache_key] = {
+            'stations': stations,
+            'area_info': area_info,
+            'timestamp': time.time()
+        }
+        
+        # Delete status message
+        await context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=status_msg.message_id
+        )
+        
+        # Send beautiful results
+        response_text = self.create_beautiful_response(stations, area_info, search_type)
+        await update.message.reply_text(response_text, parse_mode='Markdown')
 
 def main():
     """Main function to run the bot."""
-    print("🚀 Starting Google Places Gas Station Finder Bot...")
-    print("🌟 Features:")
-    print("   • Real gas station data from Google Places API")
-    print("   • Multiple ZIP codes support (up to 10)")
-    print("   • Horizontal CSV format")
-    print("   • Beautiful UI with emojis")
-    print("   • 30-minute caching to save API costs")
-    print("💰 API Cost: ~$0.10-0.50 per ZIP code")
+    print("🚀 Starting Beautiful Gas Station Finder Bot...")
+    print("🎨 Features:")
+    print("   • Beautiful interface design")
+    print("   • 3 search methods: ZIP, State, City+State")
+    print("   • Top 3 gas stations per search")
+    print("   • Real-time Google Places data")
+    print("   • Smart caching system")
     print("📱 Bot starting...")
     
     try:
         # Create bot instance
-        bot = GooglePlacesGasStationBot()
+        bot = BeautifulGasStationBot()
         
         # Create application
         app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
@@ -594,8 +442,7 @@ def main():
         app.add_handler(CommandHandler("start", bot.start))
         app.add_handler(CommandHandler("help", bot.help_command))
         app.add_handler(CommandHandler("about", bot.about_command))
-        app.add_handler(CommandHandler("example", bot.example_command))
-        app.add_handler(CommandHandler("commands", bot.commands_command))
+        app.add_handler(CommandHandler("examples", bot.examples_command))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_message))
         
         # Start the bot

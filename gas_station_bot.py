@@ -16,6 +16,46 @@ logger = logging.getLogger(__name__)
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', 'YOUR_TELEGRAM_BOT_TOKEN')
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', 'YOUR_GOOGLE_API_KEY')
 
+# Debug: Log if API key is set
+if GOOGLE_API_KEY == 'YOUR_GOOGLE_API_KEY':
+    logger.warning("⚠️ GOOGLE_API_KEY not set! Using placeholder.")
+else:
+    logger.info(f"✅ GOOGLE_API_KEY loaded (starts with: {GOOGLE_API_KEY[:10]}...)")
+
+# US State codes to full names for better geocoding
+US_STATES = {
+    'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas',
+    'CA': 'California', 'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware',
+    'FL': 'Florida', 'GA': 'Georgia', 'HI': 'Hawaii', 'ID': 'Idaho',
+    'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa', 'KS': 'Kansas',
+    'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
+    'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi',
+    'MO': 'Missouri', 'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada',
+    'NH': 'New Hampshire', 'NJ': 'New Jersey', 'NM': 'New Mexico', 'NY': 'New York',
+    'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio', 'OK': 'Oklahoma',
+    'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+    'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah',
+    'VT': 'Vermont', 'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia',
+    'WI': 'Wisconsin', 'WY': 'Wyoming', 'DC': 'Washington DC'
+}
+
+# State capitals for better results when searching by state
+STATE_CAPITALS = {
+    'AL': 'Montgomery, AL', 'AK': 'Anchorage, AK', 'AZ': 'Phoenix, AZ', 'AR': 'Little Rock, AR',
+    'CA': 'Los Angeles, CA', 'CO': 'Denver, CO', 'CT': 'Hartford, CT', 'DE': 'Wilmington, DE',
+    'FL': 'Miami, FL', 'GA': 'Atlanta, GA', 'HI': 'Honolulu, HI', 'ID': 'Boise, ID',
+    'IL': 'Chicago, IL', 'IN': 'Indianapolis, IN', 'IA': 'Des Moines, IA', 'KS': 'Kansas City, KS',
+    'KY': 'Louisville, KY', 'LA': 'New Orleans, LA', 'ME': 'Portland, ME', 'MD': 'Baltimore, MD',
+    'MA': 'Boston, MA', 'MI': 'Detroit, MI', 'MN': 'Minneapolis, MN', 'MS': 'Jackson, MS',
+    'MO': 'St. Louis, MO', 'MT': 'Billings, MT', 'NE': 'Omaha, NE', 'NV': 'Las Vegas, NV',
+    'NH': 'Manchester, NH', 'NJ': 'Newark, NJ', 'NM': 'Albuquerque, NM', 'NY': 'New York, NY',
+    'NC': 'Charlotte, NC', 'ND': 'Fargo, ND', 'OH': 'Columbus, OH', 'OK': 'Oklahoma City, OK',
+    'OR': 'Portland, OR', 'PA': 'Philadelphia, PA', 'RI': 'Providence, RI', 'SC': 'Charleston, SC',
+    'SD': 'Sioux Falls, SD', 'TN': 'Nashville, TN', 'TX': 'Houston, TX', 'UT': 'Salt Lake City, UT',
+    'VT': 'Burlington, VT', 'VA': 'Virginia Beach, VA', 'WA': 'Seattle, WA', 'WV': 'Charleston, WV',
+    'WI': 'Milwaukee, WI', 'WY': 'Cheyenne, WY', 'DC': 'Washington, DC'
+}
+
 class HealthHandler(SimpleHTTPRequestHandler):
     """Simple HTTP handler for health checks."""
     def do_GET(self):
@@ -23,6 +63,9 @@ class HealthHandler(SimpleHTTPRequestHandler):
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
         self.wfile.write(b'Gas Station Bot is running!')
+    
+    def log_message(self, format, *args):
+        pass  # Suppress HTTP logs
 
 def start_health_server():
     """Start a simple HTTP server for Render health checks."""
@@ -55,13 +98,25 @@ class SimpleGasStationBot:
             "📋 **Commands:**\n"
             "/start - Welcome message\n"
             "/help - This help\n"
-            "/examples - See examples\n\n"
+            "/examples - See examples\n"
+            "/commands - All commands\n\n"
             "🔍 **Search Types:**\n"
             "📍 ZIP: `90210`\n"
             "🏛️ State: `CA`\n"
             "🏙️ City: `Miami FL`"
         )
         await update.message.reply_text(help_text, parse_mode='Markdown')
+    
+    async def commands_command(self, update, context):
+        """List all available commands."""
+        commands_text = (
+            "📋 **COMMANDS**\n\n"
+            "/start - Start the bot\n"
+            "/help - Get help\n"
+            "/examples - See search examples\n"
+            "/commands - This list"
+        )
+        await update.message.reply_text(commands_text, parse_mode='Markdown')
     
     async def examples_command(self, update, context):
         """Send example searches."""
@@ -90,16 +145,22 @@ class SimpleGasStationBot:
         if re.match(r'^\d{5}$', user_input):
             return 'zip', user_input
         
-        # State Code: 2 letters
+        # State Code: 2 letters (must be valid US state)
         elif re.match(r'^[A-Z]{2}$', user_input):
-            return 'state', user_input
+            if user_input in US_STATES:
+                return 'state', user_input
+            else:
+                return 'unknown', user_input
         
         # City + State: "CITY ST" format
         elif re.match(r'^[A-Z\s]+\s[A-Z]{2}$', user_input):
             parts = user_input.rsplit(' ', 1)
             city = parts[0].title()
             state = parts[1]
-            return 'city_state', f"{city}, {state}"
+            if state in US_STATES:
+                return 'city_state', f"{city}, {state}"
+            else:
+                return 'unknown', user_input
         
         return 'unknown', user_input
     
@@ -108,9 +169,15 @@ class SimpleGasStationBot:
         try:
             url = "https://maps.googleapis.com/maps/api/geocode/json"
             
-            if search_type == 'state':
-                search_query = f"{search_query}, USA"
+            # For state searches, use the major city instead of state center
+            if search_type == 'state' and search_query in STATE_CAPITALS:
+                search_query = STATE_CAPITALS[search_query]
+                logger.info(f"🔄 State search converted to: {search_query}")
+            elif search_type == 'state':
+                search_query = f"{US_STATES.get(search_query, search_query)}, USA"
             elif search_type == 'city_state':
+                search_query = f"{search_query}, USA"
+            elif search_type == 'zip':
                 search_query = f"{search_query}, USA"
             
             params = {
@@ -119,13 +186,18 @@ class SimpleGasStationBot:
                 'components': 'country:US'
             }
             
-            response = requests.get(url, params=params)
+            logger.info(f"🔍 Geocoding request: {search_query}")
+            response = requests.get(url, params=params, timeout=10)
             data = response.json()
+            
+            logger.info(f"📍 Geocoding status: {data.get('status')}")
             
             if data['status'] == 'OK' and data['results']:
                 result = data['results'][0]
                 location = result['geometry']['location']
                 formatted_address = result['formatted_address']
+                
+                logger.info(f"✅ Found location: {formatted_address} ({location['lat']}, {location['lng']})")
                 
                 # Extract location info
                 state = "Unknown"
@@ -140,11 +212,13 @@ class SimpleGasStationBot:
                             city = component.get('long_name', 'Unknown')
                 
                 return location['lat'], location['lng'], city, state, formatted_address
+            else:
+                logger.error(f"❌ Geocoding failed: {data.get('status')} - {data.get('error_message', 'No error message')}")
             
             return None, None, None, None, None
             
         except Exception as e:
-            logger.error(f"Geocoding error: {e}")
+            logger.error(f"❌ Geocoding exception: {e}")
             return None, None, None, None, None
     
     def search_gas_stations(self, lat, lng):
@@ -159,8 +233,11 @@ class SimpleGasStationBot:
                 'key': GOOGLE_API_KEY
             }
             
-            response = requests.get(url, params=params)
+            logger.info(f"🔍 Searching gas stations at: {lat}, {lng}")
+            response = requests.get(url, params=params, timeout=10)
             data = response.json()
+            
+            logger.info(f"⛽ Places API status: {data.get('status')}, Results: {len(data.get('results', []))}")
             
             stations = []
             if data['status'] == 'OK':
@@ -177,13 +254,16 @@ class SimpleGasStationBot:
                         'address': details.get('formatted_address', place.get('vicinity', 'Address not available'))
                     }
                     stations.append(station)
+                    logger.info(f"✅ Found station: {station['name']}")
                     
                     time.sleep(0.1)  # Rate limiting
+            else:
+                logger.error(f"❌ Places API error: {data.get('status')} - {data.get('error_message', '')}")
             
             return stations
             
         except Exception as e:
-            logger.error(f"Gas station search error: {e}")
+            logger.error(f"❌ Gas station search exception: {e}")
             return []
     
     def get_place_details(self, place_id):
@@ -196,7 +276,7 @@ class SimpleGasStationBot:
                 'key': GOOGLE_API_KEY
             }
             
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, timeout=10)
             data = response.json()
             
             if data['status'] == 'OK':
@@ -205,7 +285,7 @@ class SimpleGasStationBot:
             return {}
             
         except Exception as e:
-            logger.error(f"Place details error: {e}")
+            logger.error(f"❌ Place details exception: {e}")
             return {}
     
     def create_response(self, stations, search_info, search_type):
@@ -236,8 +316,12 @@ class SimpleGasStationBot:
         """Handle user search input."""
         user_input = update.message.text.strip()
         
+        logger.info(f"📩 Received message: {user_input}")
+        
         # Detect search type
         search_type, processed_input = self.detect_search_type(user_input)
+        
+        logger.info(f"🔎 Detected: type={search_type}, input={processed_input}")
         
         if search_type == 'unknown':
             await update.message.reply_text(
@@ -265,6 +349,7 @@ class SimpleGasStationBot:
         if cache_key in self.cache:
             cached_time = self.cache[cache_key]['timestamp']
             if time.time() - cached_time < 1800:  # 30 minutes
+                logger.info(f"📦 Using cached results for: {cache_key}")
                 stations = self.cache[cache_key]['stations']
                 area_info = self.cache[cache_key]['area_info']
                 
@@ -274,16 +359,17 @@ class SimpleGasStationBot:
                         message_id=status_msg.message_id
                     )
                 except:
-                    pass  # Ignore if message already deleted
+                    pass
                 
                 response_text = self.create_response(stations, area_info, search_type)
                 await update.message.reply_text(response_text, parse_mode='Markdown')
-                return  # IMPORTANT: Exit here to prevent duplicate processing
+                return
         
         # Geocode the search
         lat, lng, city, state, formatted_address = self.geocode_location(processed_input, search_type)
         
         if not lat or not lng:
+            logger.error(f"❌ Geocoding failed for: {processed_input}")
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=status_msg.message_id,
@@ -311,9 +397,9 @@ class SimpleGasStationBot:
                 message_id=status_msg.message_id
             )
         except:
-            pass  # Ignore if message already deleted
+            pass
         
-        # Send results only once
+        # Send results
         response_text = self.create_response(stations, area_info, search_type)
         await update.message.reply_text(response_text, parse_mode='Markdown')
 
@@ -322,6 +408,17 @@ def main():
     print("🚀 Starting Simple Gas Station Finder Bot...")
     print("✅ Clean, organized interface")
     print("📱 Bot starting...")
+    
+    # Debug API key status
+    if GOOGLE_API_KEY == 'YOUR_GOOGLE_API_KEY':
+        print("⚠️ WARNING: GOOGLE_API_KEY environment variable not set!")
+    else:
+        print(f"✅ Google API Key loaded (starts with: {GOOGLE_API_KEY[:15]}...)")
+    
+    if TELEGRAM_BOT_TOKEN == 'YOUR_TELEGRAM_BOT_TOKEN':
+        print("⚠️ WARNING: TELEGRAM_BOT_TOKEN environment variable not set!")
+    else:
+        print(f"✅ Telegram Bot Token loaded")
     
     try:
         # Start health server in background thread for Render
@@ -338,14 +435,17 @@ def main():
         app.add_handler(CommandHandler("start", bot.start))
         app.add_handler(CommandHandler("help", bot.help_command))
         app.add_handler(CommandHandler("examples", bot.examples_command))
+        app.add_handler(CommandHandler("commands", bot.commands_command))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_message))
         
         # Start the bot
         print("✅ Bot started successfully!")
-        app.run_polling()
+        app.run_polling(drop_pending_updates=True)
         
     except Exception as e:
         print(f"❌ Error starting bot: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == '__main__':
     main()
